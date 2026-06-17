@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResQme - מדריך חפיפה למתכנת</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Assistant & Rubik (Hebrew-focused) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Assistant', 'Rubik', sans-serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        /* A4 styling for screen preview */
+        .a4-page {
+            background: white;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm 15mm;
+            margin: 20px auto;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            position: relative;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        /* Print optimization */
+        @media print {
+            body {
+                background: white !important;
+                color: #000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .a4-page {
+                width: 100% !important;
+                min-height: auto !important;
+                margin: 0 !important;
+                padding: 15mm 10mm !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                page-break-after: always;
+            }
+            /* Avoid page breaks inside sections and code blocks */
+            section, tr, .keep-together {
+                page-break-inside: avoid !important;
+            }
+            a {
+                text-decoration: none !important;
+                color: #003366 !important;
+            }
+        }
+    </style>
+</head>
+<body class="transition-colors duration-300">
+
+    <!-- Top Navigation Bar (Hidden in Print) -->
+    <header class="no-print sticky top-0 z-50 bg-slate-900 text-white px-6 py-4 shadow-md flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-sky-600 flex items-center justify-center font-bold text-lg text-white shadow-md shadow-sky-500/20">
+                RQ
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight">ResQme</h1>
+                <p class="text-xs text-slate-400">מחולל PDF - מסמך חפיפה למתכנת</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <!-- Edit Mode Toggle -->
+            <button id="editToggle" onclick="toggleEditMode()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-sm font-semibold transition flex items-center gap-2">
+                <svg id="editIcon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span id="editText">אפשר עריכה במסמך</span>
+            </button>
+
+            <!-- Quick Theme Color Selectors -->
+            <div class="flex items-center gap-1.5 bg-slate-800 p-1.5 rounded-lg border border-slate-700">
+                <button onclick="changeTheme('classic')" class="w-5 h-5 rounded-full bg-[#003366] border border-white/20" title="כחול קלאסי"></button>
+                <button onclick="changeTheme('cyan')" class="w-5 h-5 rounded-full bg-[#0891b2] border border-white/20" title="כחול ים"></button>
+                <button onclick="changeTheme('indigo')" class="w-5 h-5 rounded-full bg-[#4f46e5] border border-white/20" title="אינדיגו מקצועי"></button>
+            </div>
+
+            <!-- Download PDF Button -->
+            <button onclick="triggerPrint()" class="px-5 py-2.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-sm font-bold transition flex items-center gap-2 shadow-lg shadow-sky-600/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                שמור כ-PDF / הדפס
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <div class="max-w-[1200px] mx-auto p-4 flex flex-col lg:flex-row gap-6">
+        
+        <!-- Sidebar Navigation (Hidden in Print) -->
+        <aside class="no-print lg:w-1/4 flex-shrink-0">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 sticky top-24">
+                <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4">תוכן עניינים מהיר</h3>
+                <nav class="space-y-1">
+                    <a href="#intro" class="block px-3 py-2 text-sm font-medium rounded-lg text-[#003366] bg-slate-50 hover:bg-slate-100 transition">מטרה ומיקוד</a>
+                    <a href="#summary" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">1. תקציר מצב נוכחי</a>
+                    <a href="#structure" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">2. מבנה תיקייה</a>
+                    <a href="#files" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">3. תפקיד כל קובץ</a>
+                    <a href="#architecture" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">4. ארכיטקטורה וזרימה</a>
+                    <a href="#setup" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">5. התקנה והרצה</a>
+                    <a href="#api" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">6. חוזה ה-API</a>
+                    <a href="#copilot" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">7. עבודה מול Copilot</a>
+                    <a href="#checklist" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">8. Definition of Done</a>
+                    <a href="#developer-msg" class="block px-3 py-2 text-sm font-medium rounded-lg text-slate-600 hover:bg-slate-50 hover:text-slate-950 transition">9. הודעה לשליחה מהירה</a>
+                </nav>
+
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-3.5 text-xs text-amber-800">
+                        <span class="font-bold block mb-1">💡 טיפ להדפסה מושלמת:</span>
+                        במסך ההדפסה של הדפדפן, מומלץ לסמן את האפשרות <strong>"הדפס רקעי צבע" (Background graphics)</strong> כדי שהצבעים והעימוד העדינים יישמרו.
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Document Sheet (A4 Styled Page) -->
+        <main class="w-full lg:w-3/4">
+            
+            <div id="editableDoc" class="a4-page transition-all duration-300" contenteditable="false">
+                
+                <!-- DOCUMENT HEADER -->
+                <header class="border-b-4 border-[#003366] pb-6 mb-8 flex justify-between items-start" id="theme-border">
+                    <div>
+                        <h1 class="text-3xl font-extrabold tracking-tight text-[#003366] mb-2" id="theme-title">מסמך חפיפה למתכנת</h1>
+                        <p class="text-lg font-bold text-slate-500 uppercase tracking-wide">ResQme Backend + GitHub Copilot</p>
+                    </div>
+                    <div class="text-left">
+                        <span class="inline-block px-3 py-1 bg-slate-100 text-slate-800 text-xs font-bold rounded-full mb-1">גרסה 1.0</span>
+                        <p class="text-xs text-slate-400">יוני 2026</p>
+                    </div>
+                </header>
+
+                <!-- SECTION: INTRO -->
+                <section id="intro" class="mb-8">
+                    <div class="bg-sky-50 border-r-4 border-[#003366] p-4 rounded-l-lg mb-6" id="theme-callout-box">
+                        <h4 class="font-bold text-lg text-[#003366] mb-1" id="theme-callout-title">🎯 מטרת העל</h4>
+                        <p class="text-sm leading-relaxed text-slate-700">
+                            להעניק למתכנת תמונה מלאה, קצרה ומעשית של רכיבי הבקאנד הקיימים, מה מותר ומה אסור לשנות, איך להריץ בדיקות, ואיך להמשיך לפתח בעזרת GitHub Copilot בלי לגרום לו לשכתב את הפרויקט או להוסיף רכיבים לא רלוונטיים.
+                        </p>
+                    </div>
+
+                    <div class="bg-red-50 border-r-4 border-red-500 p-4 rounded-l-lg mb-8">
+                        <h4 class="font-bold text-lg text-red-700 mb-1">⚠️ עמדה מקצועית וגבולות פיתוח</h4>
+                        <p class="text-sm leading-relaxed text-red-950 font-medium">
+                            כרגע יש להתמקד **באינטגרציה בלבד**! אין להוסיף רכיבי TTS, אין להוסיף יצירת דאטה, אין לשנות את מנוע ה-DSS ואין לבנות מחדש ארכיטקטורה. כל שינוי כזה יגדיל סיכונים ויבזבז זמן עבודה יקר.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- SECTION 1 -->
+                <section id="summary" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-1">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-1">1</span>
+                        תקציר המצב הנוכחי
+                    </h2>
+                    <p class="text-sm leading-relaxed mb-4">
+                        ישנה חבילת backend פשוטה ושטוחה בשם <code class="bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded font-mono text-xs">resqme_backend_simple</code>. החבילה מיועדת להיות נקודת האמת הבלעדית של הבקאנד לצורך חיבור הפרונט. היא כוללת FastAPI, מנוע DSS, קובץ Excel שהוא בסיס הידע, רכיב STT בעברית, וקבצי בדיקה מינימליים.
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 text-sm text-slate-700 pr-2">
+                        <li>הפרונט לא אמור לקרוא את קובץ ה-Excel <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-xs">dss.xlsx</code> ישירות.</li>
+                        <li>הפרונט שולח טקסט או קובץ אודיו ל-API ייעודי.</li>
+                        <li>ה-Backend מפעיל את מנוע ה-DSS ומחזיר JSON מובנה ומוכן להצגה ישירה.</li>
+                        <li>רכיב ה-STT הוא רק שלב תמלול (המרת קול לטקסט), הוא אינו מחליף את מנוע ה-DSS.</li>
+                        <li>קובץ ה-Excel מהווה את בסיס הידע של המערכת והוא חובה מוחלטת להרצת המערכת.</li>
+                    </ul>
+                </section>
+
+                <!-- SECTION 2 -->
+                <section id="structure" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-2">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-2">2</span>
+                        מבנה תיקייה מומלץ
+                    </h2>
+                    <p class="text-sm leading-relaxed mb-4">
+                        זהו מבנה שטוח בכוונה. <strong>אין להחזיר את הפרויקט למבנה עמוק</strong> של <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-xs">src/resqme/pipelines</code> אם אין בכך צורך ממשי מוגדר מראש.
+                    </p>
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 font-mono text-xs leading-relaxed text-slate-700">
+                        resqme_backend_simple/<br>
+                        ├── main.py (FastAPI Server)<br>
+                        ├── dss_adapter.py<br>
+                        ├── stt_adapter.py<br>
+                        ├── schemas.py (Pydantic Models)<br>
+                        ├── dss_engine.py<br>
+                        ├── excel_dss_loader.py<br>
+                        ├── flutterflow_formatter.py<br>
+                        ├── whisper_hebrew.py<br>
+                        ├── text_cleaning_hebrew.py<br>
+                        ├── dss.xlsx (Knowledge Base)<br>
+                        ├── sample_audio_01.mp3<br>
+                        ├── test_dss.py<br>
+                        ├── test_text_flow.py<br>
+                        ├── test_stt.py<br>
+                        ├── test_stt_to_dss.py<br>
+                        ├── requirements.txt<br>
+                        ├── README.md<br>
+                        └── COPILOT_BRIEF.md
+                    </div>
+                </section>
+
+                <!-- SECTION 3 (TABLE) -->
+                <section id="files" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-3">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-3">3</span>
+                        תפקיד כל קובץ
+                    </h2>
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-sm text-right text-slate-700">
+                            <thead class="bg-slate-100 text-[#003366] font-bold text-xs" id="theme-table-header">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 border-b">שם הקובץ</th>
+                                    <th scope="col" class="px-4 py-3 border-b">תפקיד במערכת</th>
+                                    <th scope="col" class="px-4 py-3 border-b text-center">חובה?</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">main.py</td>
+                                    <td class="px-4 py-3 text-xs">שרת FastAPI. מגדיר את ה-endpoints שהפרונט צריך לקרוא.</td>
+                                    <td class="px-4 py-3 text-xs text-center font-bold text-green-600">כן</td>
+                                </tr>
+                                <tr class="bg-slate-50/50">
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">schemas.py</td>
+                                    <td class="px-4 py-3 text-xs">מודלים של Pydantic המגדירים את מבנה הבקשה והתשובה. זה חוזה ה-API.</td>
+                                    <td class="px-4 py-3 text-xs text-center font-bold text-green-600">כן</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">dss_adapter.py</td>
+                                    <td class="px-4 py-3 text-xs">שכבת תיווך בין ה־API לבין מנוע ה־DSS. מקבל טקסט ומחזיר פלט אחיד.</td>
+                                    <td class="px-4 py-3 text-xs text-center font-bold text-green-600">כן</td>
+                                </tr>
+                                <tr class="bg-slate-50/50">
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">stt_adapter.py</td>
+                                    <td class="px-4 py-3 text-xs">שכבת תיווך בין קובץ אודיו לבין STT. מחזיר תמלול נקי שמועבר ל־DSS.</td>
+                                    <td class="px-4 py-3 text-xs text-center text-slate-500">רק לאודיו</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">dss_engine.py</td>
+                                    <td class="px-4 py-3 text-xs">מנוע ההחלטה. מכיל את הלוגיקה שמסווגת אירוע רפואי לפי תסמינים.</td>
+                                    <td class="px-4 py-3 text-xs text-center font-bold text-green-600">כן</td>
+                                </tr>
+                                <tr class="bg-slate-50/50">
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">excel_dss_loader.py</td>
+                                    <td class="px-4 py-3 text-xs">טוען את dss.xlsx וממיר אותו למבני נתונים שהמנוע יודע לעבוד איתם.</td>
+                                    <td class="px-4 py-3 text-xs text-center font-bold text-green-600">כן</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-4 py-3 font-semibold font-mono text-xs">dss.xlsx</td>
+                                    <td class="px-4 py-3 text-xs font-semibold text-red-600">בסיס הידע של ה־DSS: מצבים, מילות מפתח, חוקים והנחיות.</td>
+                                    <td class="px-4 py-3 text-xs text-center font-bold text-red-600">קריטי</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- SECTION 4 -->
+                <section id="architecture" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-4">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-4">4</span>
+                        מהו dss.xlsx ומה הוא לא?
+                    </h2>
+                    <p class="text-sm leading-relaxed mb-4">
+                        קובץ ה-Excel הוא בסיס הידע (Knowledge Base). בלעדיו המנוע לא מכיר שום חוק או מצב רפואי. החלוקה היא ברורה:
+                    </p>
+                    
+                    <!-- Diagram -->
+                    <div class="flex flex-col gap-2 bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm">
+                        <div class="flex justify-between items-center bg-white p-2.5 rounded border border-slate-200">
+                            <span class="font-bold text-xs text-slate-500">קובץ המידע</span>
+                            <span class="font-mono text-xs font-bold text-[#003366]">dss.xlsx</span>
+                            <span class="text-xs text-slate-600">Knowledge Base</span>
+                        </div>
+                        <div class="text-center text-slate-400">⬇️</div>
+                        <div class="flex justify-between items-center bg-white p-2.5 rounded border border-slate-200">
+                            <span class="font-bold text-xs text-slate-500">טעינה</span>
+                            <span class="font-mono text-xs font-bold text-slate-800">excel_dss_loader.py</span>
+                            <span class="text-xs text-slate-600">Loads Knowledge Base</span>
+                        </div>
+                        <div class="text-center text-slate-400">⬇️</div>
+                        <div class="flex justify-between items-center bg-white p-2.5 rounded border border-slate-200">
+                            <span class="font-bold text-xs text-slate-500">סיווג</span>
+                            <span class="font-mono text-xs font-bold text-slate-800">dss_engine.py</span>
+                            <span class="text-xs text-slate-600">Decision Engine</span>
+                        </div>
+                        <div class="text-center text-slate-400">⬇️</div>
+                        <div class="flex justify-between items-center bg-white p-2.5 rounded border border-slate-200">
+                            <span class="font-bold text-xs text-slate-500">חוזה API</span>
+                            <span class="font-mono text-xs font-bold text-slate-800">main.py / dss_adapter.py</span>
+                            <span class="text-xs text-slate-600">Exposes Logic</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 5 -->
+                <section id="setup" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-5">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-5">5</span>
+                        התקנה והרצה מקומית
+                    </h2>
+                    <p class="text-sm leading-relaxed mb-3">יש לפתוח את התיקייה כפרויקט עצמאי ולהריץ:</p>
+                    <div class="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs leading-relaxed tracking-wide mb-4 text-left" dir="ltr">
+                        python3 -m venv .venv<br>
+                        source .venv/bin/activate<br>
+                        pip install -r requirements.txt<br>
+                        uvicorn main:app --reload
+                    </div>
+                    
+                    <h4 class="font-bold text-sm mb-2">בדיקות חובה (הרצה מקומית לפני חיבור הפרונט!)</h4>
+                    <div class="bg-slate-950 text-sky-400 p-3 rounded-lg font-mono text-xs mb-3 text-left" dir="ltr">
+                        python test_text_flow.py<br>
+                        python test_dss.py
+                    </div>
+                    <p class="text-xs text-slate-500">
+                        * ציפייה: <code class="bg-slate-100 px-1 py-0.5 rounded text-xs font-mono">test_dss.py</code> אמור להחזיר <span class="text-green-600 font-bold">Passed: 15/15</span>.
+                    </p>
+                </section>
+
+                <!-- SECTION 6 -->
+                <section id="api" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-6">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-6">6</span>
+                        חוזה ה-API מול הפרונט
+                    </h2>
+                    
+                    <h3 class="text-sm font-bold text-slate-600 mb-2">Endpoint לטקסט (POST /analyze-text-text)</h3>
+                    <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 font-mono text-xs mb-4 text-left" dir="ltr">
+                        <span class="text-green-600 font-bold">POST</span> /analyze-text-text<br>
+                        Content-Type: application/json<br><br>
+                        { "text": "הוא לא מגיב ולא נושם" }
+                    </div>
+
+                    <h3 class="text-sm font-bold text-slate-600 mb-2">מבנה תשובה צפוי (JSON)</h3>
+                    <div class="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs leading-relaxed text-left max-h-72 overflow-y-auto" dir="ltr">
+{
+  "input_type": "text",
+  "transcript": "הוא לא מגיב ולא נושם",
+  "case_id": "G01",
+  "condition": "דום לב",
+  "urgency": "critical",
+  "confidence": 0.9,
+  "status": "classified",
+  "needs_clarification": false,
+  "clarifying_question": null,
+  "instructions": [
+    "יש להתחיל בהחייאה מיידית",
+    "הזעק עזרה והשג דפיברילטור"
+  ],
+  "warnings": [],
+  "matched_symptoms": [],
+  "alternative_conditions": []
+}
+                    </div>
+                </section>
+
+                <!-- SECTION 7 -->
+                <section id="copilot" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-7">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-7">7</span>
+                        הנחיות עבודה נכונות עם GitHub Copilot
+                    </h2>
+                    
+                    <div class="bg-red-50 border-r-4 border-red-500 p-4 rounded-l-lg mb-6">
+                        <h4 class="font-bold text-sm text-red-800 mb-2">🚫 דברים שאסור לתת לקופיילוט לעשות!</h4>
+                        <ul class="list-disc list-inside space-y-1.5 text-xs text-red-950">
+                            <li><strong>לא לשכתב</strong> את <code class="bg-white/50 px-1 py-0.5 rounded font-mono">dss_engine.py</code> ללא סיבה קונקרטית מוגדרת.</li>
+                            <li><strong>לא למחוק או לשנות</strong> את קובץ האקסל <code class="bg-white/50 px-1 py-0.5 rounded font-mono">dss.xlsx</code>.</li>
+                            <li><strong>לא לאפשר לפרונט</strong> לקרוא או לעבד את האקסל ישירות.</li>
+                            <li><strong>לא להוסיף</strong> רכיבי TTS (Text-to-Speech) או רכיבי יצירת דאטה דמו.</li>
+                            <li><strong>לא לשלב</strong> בסיסי נתונים חדשים (כמו Firebase) אם לא נתבקשת במפורש.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Copilot Prompt Cards -->
+                    <div class="space-y-4">
+                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-[#003366]" id="theme-tag-1">💬 פרומפט פתיחה לקופיילוט</span>
+                                <button onclick="copyPrompt('prompt1')" class="no-print text-xs text-slate-500 hover:text-[#003366] font-semibold flex items-center gap-1 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                    העתק פרומפט
+                                </button>
+                            </div>
+                            <p id="prompt1" class="font-mono text-xs text-slate-700 bg-white p-3 rounded border border-slate-100 text-left" dir="ltr">
+You are working on an existing ResQme frontend and backend integration. The backend folder is the source of truth. Do not restructure the backend. Do not rewrite dss_engine.py. Do not modify dss.xlsx unless explicitly asked. Do not add TTS or data generation. Do not hardcode medical results in the frontend. First, inspect main.py, schemas.py, dss_adapter.py, and README.md. Then explain the exact API calls the frontend should use before changing code.
+                            </p>
+                        </div>
+
+                        <div class="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-[#003366]" id="theme-tag-2">💬 פרומפט לחיבור קלט טקסט</span>
+                                <button onclick="copyPrompt('prompt2')" class="no-print text-xs text-slate-500 hover:text-[#003366] font-semibold flex items-center gap-1 transition">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                    </svg>
+                                    העתק פרומפט
+                                </button>
+                            </div>
+                            <p id="prompt2" class="font-mono text-xs text-slate-700 bg-white p-3 rounded border border-slate-100 text-left" dir="ltr">
+Connect the existing text input in the frontend to the backend endpoint POST /analyze-text-text. Send JSON with the exact shape: { "text": &lt;typed user text&gt; }. After receiving the response, store these fields in frontend state: case_id, condition, urgency, confidence, transcript, instructions, warnings, matched_symptoms, alternative_conditions. Then navigate to the result screen and bind these fields to the existing UI components. Do not change backend logic. Do not hardcode any DSS result in the frontend.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION 8 -->
+                <section id="checklist" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-8">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-8">8</span>
+                        Definition of Done (DoD) למסירה
+                    </h2>
+                    
+                    <!-- Dynamic Checklist -->
+                    <div class="space-y-2.5">
+                        <label class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100/50 transition">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded text-[#003366] border-slate-300 focus:ring-0">
+                            <div class="text-sm">
+                                <span class="font-bold text-slate-900 block">השרת רץ בצורה חלקה</span>
+                                <span class="text-xs text-slate-500">ה-Backend מורץ מקומית עם uvicorn main:app --reload ללא קריסות.</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100/50 transition">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded text-[#003366] border-slate-300 focus:ring-0">
+                            <div class="text-sm">
+                                <span class="font-bold text-slate-900 block">קריאת בדיקה תקינה</span>
+                                <span class="text-xs text-slate-500">קריאת POST /analyze-text-text מחזירה פלט JSON מלא ותואם סכמה.</span>
+                            </div>
+                        </label>
+
+                        <label class="flex items-start gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100/50 transition">
+                            <input type="checkbox" class="mt-1 w-4 h-4 rounded text-[#003366] border-slate-300 focus:ring-0">
+                            <div class="text-sm">
+                                <span class="font-bold text-slate-900 block">הצגה מלאה בפרונט</span>
+                                <span class="text-xs text-slate-500">מסך התוצאות מציג את כל נתוני ה-JSON האמיתיים שנשלחו מהמנוע (לא ערכים מקובעים).</span>
+                            </div>
+                        </label>
+                    </div>
+                </section>
+
+                <!-- SECTION 9 -->
+                <section id="developer-msg" class="mb-10 keep-together">
+                    <h2 class="text-xl font-bold text-[#003366] border-b border-slate-200 pb-2 mb-4 flex items-center gap-2" id="theme-h2-9">
+                        <span class="w-6 h-6 rounded-md bg-[#003366] text-white flex items-center justify-center text-xs" id="theme-badge-9">9</span>
+                        הודעה מוכנה לשליחה למתכנת בפרויקט
+                    </h2>
+                    
+                    <div class="bg-sky-50 border-r-4 border-sky-600 p-4 rounded-l-lg mb-4" id="theme-msg-box">
+                        <p class="text-sm font-semibold text-slate-800 mb-2">תוכל להעתיק ולשלוח את הודעה זו ישירות למתכנת שמקבל את החפיפה:</p>
+                        <div id="devMessageText" class="bg-white p-3 rounded border border-sky-200 font-sans text-xs leading-relaxed text-slate-700 whitespace-pre-wrap select-all">היי, זו חבילת backend נקייה של ResQme.
+המטרה שלך היא לא לשכתב את המנוע אלא לחבר את הפרונט ל־API.
+הקובץ dss.xlsx הוא בסיס הידע של ה־DSS וחייב להישאר בדיוק איפה שהוא.
+הפרונט צריך לקרוא POST /analyze-text-text עבור קלט טקסט ו־POST /analyze-text-audio עבור קובץ אודיו.
+
+תתחיל מהרצת backend ובדיקות מקומיות:
+1. python test_text_flow.py
+2. python test_dss.py
+3. uvicorn main:app --reload
+
+רק אחרי שזה עובד והכל ירוק, חבר את הפרונט.
+נא לא להוסיף TTS, יצירת דאטה, או שינויי ארכיטקטורה בלי אישור מראש. בהצלחה!</div>
+                    </div>
+                    
+                    <button onclick="copyPrompt('devMessageText')" class="no-print w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition flex items-center justify-center gap-2 border border-slate-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                        העתק את ההודעה למתכנת
+                    </button>
+                </section>
+
+                <!-- DOCUMENT FOOTER (A4 ONLY) -->
+                <footer class="border-t border-slate-200 pt-4 mt-8 flex justify-between items-center text-xs text-slate-400">
+                    <p>ResQme Ltd. - סודי ומסווג</p>
+                    <p class="font-mono">Page 1 of 1</p>
+                </footer>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Alert Toast System -->
+    <div id="toast" class="no-print fixed bottom-5 left-5 bg-slate-900 text-white px-4 py-2.5 rounded-lg text-xs font-semibold shadow-xl transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none flex items-center gap-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="toastMsg">הטקסט הועתק בהצלחה!</span>
+    </div>
+
+    <!-- Web-app Core Scripts -->
+    <script>
+        // Copy utilities using safe fallback
+        function copyPrompt(elementId) {
+            const textToCopy = document.getElementById(elementId).innerText || document.getElementById(elementId).textContent;
+            
+            // Fallback for iframe restrictions
+            const textarea = document.createElement("textarea");
+            textarea.value = textToCopy;
+            textarea.style.position = "fixed";  // Avoid scrolling to bottom
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast("הטקסט הועתק ללוח בהצלחה!");
+            } catch (err) {
+                showToast("העתקה נכשלה, אנא העתק ידנית");
+            }
+            
+            document.body.removeChild(textarea);
+        }
+
+        // Show Toast Utility
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = msg;
+            toast.classList.remove('translate-y-10', 'opacity-0', 'pointer-events-none');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        // Trigger native print helper
+        function triggerPrint() {
+            window.print();
+        }
+
+        // Toggle Edit Mode Live
+        function toggleEditMode() {
+            const doc = document.getElementById('editableDoc');
+            const toggleBtn = document.getElementById('editToggle');
+            const toggleText = document.getElementById('editText');
+            const toggleIcon = document.getElementById('editIcon');
+            
+            const isEditable = doc.getAttribute('contenteditable') === 'true';
+            
+            if (isEditable) {
+                doc.setAttribute('contenteditable', 'false');
+                toggleBtn.classList.remove('bg-emerald-800', 'hover:bg-emerald-700', 'border-emerald-600');
+                toggleBtn.classList.add('bg-slate-800', 'hover:bg-slate-700', 'border-slate-700');
+                toggleText.innerText = 'אפשר עריכה במסמך';
+                toggleIcon.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                `;
+                showToast("מצב עריכה כבוי. השינויים נשמרו מקומית.");
+            } else {
+                doc.setAttribute('contenteditable', 'true');
+                toggleBtn.classList.add('bg-emerald-800', 'hover:bg-emerald-700', 'border-emerald-600');
+                toggleBtn.classList.remove('bg-slate-800', 'hover:bg-slate-700', 'border-slate-700');
+                toggleText.innerText = 'נעל וערוך כעת';
+                toggleIcon.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                `;
+                doc.focus();
+                showToast("מצב עריכה פעיל! כעת תוכל לשנות כל חלק מהמסמך על המסך.");
+            }
+        }
+
+        // Theme Switcher for Delicate Blue tones
+        function changeTheme(themeName) {
+            const elements = {
+                border: document.getElementById('theme-border'),
+                title: document.getElementById('theme-title'),
+                calloutBox: document.getElementById('theme-callout-box'),
+                calloutTitle: document.getElementById('theme-callout-title'),
+                msgBox: document.getElementById('theme-msg-box'),
+                h2s: [
+                    document.getElementById('theme-h2-1'),
+                    document.getElementById('theme-h2-2'),
+                    document.getElementById('theme-h2-3'),
+                    document.getElementById('theme-h2-4'),
+                    document.getElementById('theme-h2-5'),
+                    document.getElementById('theme-h2-6'),
+                    document.getElementById('theme-h2-7'),
+                    document.getElementById('theme-h2-8'),
+                    document.getElementById('theme-h2-9')
+                ],
+                badges: [
+                    document.getElementById('theme-badge-1'),
+                    document.getElementById('theme-badge-2'),
+                    document.getElementById('theme-badge-3'),
+                    document.getElementById('theme-badge-4'),
+                    document.getElementById('theme-badge-5'),
+                    document.getElementById('theme-badge-6'),
+                    document.getElementById('theme-badge-7'),
+                    document.getElementById('theme-badge-8'),
+                    document.getElementById('theme-badge-9')
+                ],
+                tableHeader: document.getElementById('theme-table-header'),
+                tags: [
+                    document.getElementById('theme-tag-1'),
+                    document.getElementById('theme-tag-2')
+                ]
+            };
+
+            let colors = {};
+            if (themeName === 'classic') {
+                colors = {
+                    primary: '#003366',
+                    primaryBgClass: 'bg-[#003366]',
+                    textClass: 'text-[#003366]',
+                    borderClass: 'border-[#003366]',
+                    calloutBg: 'bg-sky-50',
+                    calloutBorder: 'border-[#003366]',
+                    tableHeaderBg: 'bg-slate-100',
+                    tableHeaderTxt: 'text-[#003366]'
+                };
+            } else if (themeName === 'cyan') {
+                colors = {
+                    primary: '#0891b2',
+                    primaryBgClass: 'bg-[#0891b2]',
+                    textClass: 'text-[#0891b2]',
+                    borderClass: 'border-[#0891b2]',
+                    calloutBg: 'bg-cyan-50/50',
+                    calloutBorder: 'border-[#0891b2]',
+                    tableHeaderBg: 'bg-cyan-50',
+                    tableHeaderTxt: 'text-cyan-800'
+                };
+            } else if (themeName === 'indigo') {
+                colors = {
+                    primary: '#4f46e5',
+                    primaryBgClass: 'bg-[#4f46e5]',
+                    textClass: 'text-[#4f46e5]',
+                    borderClass: 'border-[#4f46e5]',
+                    calloutBg: 'bg-indigo-50/60',
+                    calloutBorder: 'border-[#4f46e5]',
+                    tableHeaderBg: 'bg-indigo-50',
+                    tableHeaderTxt: 'text-indigo-800'
+                };
+            }
+
+            // Apply to Header border
+            elements.border.style.borderColor = colors.primary;
+            elements.title.style.color = colors.primary;
+
+            // Apply to Callout box
+            elements.calloutBox.className = `${colors.calloutBg} border-r-4 ${colors.calloutBorder} p-4 rounded-l-lg mb-6`;
+            elements.calloutTitle.style.color = colors.primary;
+
+            // Apply to H2 headings and Badges
+            elements.h2s.forEach(h2 => {
+                if (h2) h2.style.color = colors.primary;
+            });
+            elements.badges.forEach(badge => {
+                if (badge) {
+                    badge.className = `w-6 h-6 rounded-md ${colors.primaryBgClass} text-white flex items-center justify-center text-xs`;
+                }
+            });
+
+            // Tags
+            elements.tags.forEach(tag => {
+                if (tag) tag.style.color = colors.primary;
+            });
+
+            // Table header
+            if (elements.tableHeader) {
+                elements.tableHeader.className = `${colors.tableHeaderBg} ${colors.tableHeaderTxt} font-bold text-xs`;
+            }
+
+            showToast("סגנון העיצוב עודכן בהצלחה!");
+        }
+    </script>
+</body>
+</html>
