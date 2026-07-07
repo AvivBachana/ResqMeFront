@@ -307,10 +307,14 @@ function App() {
     return String(v);
   };
 
+  const withSuspect = (name: string | null | undefined): string =>
+    name ? `חשד ל${name}` : '';
+
   const displayResult = useMemo(() => {
     if (!apiResult) return null;
 
-    const title = apiResult.selected_condition_name || (apiResult as any).condition || '';
+    const rawTitle = apiResult.selected_condition_name || (apiResult as any).condition || '';
+    const title = rawTitle ? `חשד ל${rawTitle}` : '';
     const confidence = formatConfidence(apiResult.selected_confidence ?? (apiResult as any).confidence);
     const symptoms = apiResult.matched_symptoms && apiResult.matched_symptoms.length > 0
       ? apiResult.matched_symptoms
@@ -883,61 +887,9 @@ function App() {
                 <div style={{ background: 'var(--background)', borderRadius: '24px 24px 0 0', marginTop: -20, position: 'relative', zIndex: 2, padding: '1.25rem 1.5rem 1.5rem', flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
                 {errorBanner}
 
-                {/* Matched symptoms */}
-                {apiResult?.matched_symptoms && apiResult.matched_symptoms.length > 0 && (
-                  <div className="bg-card border border-border rounded-xl p-4 space-y-2">
-                    <p className="text-sm font-semibold text-foreground">תסמינים שזוהו:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {apiResult.matched_symptoms.map((s) => (
-                        <span key={s} className="text-xs bg-muted text-foreground rounded-full px-3 py-1">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Top two competing conditions */}
-                {apiResult?.top_condition_name && (
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">מצבים מובילים:</p>
-                    <div className="flex gap-3">
-                      <div className="flex-1 bg-card border border-border rounded-xl p-3 text-center">
-                        <p className="text-sm font-bold text-foreground">{apiResult.top_condition_name}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          רמת התאמה: {Math.round((apiResult.top_confidence ?? 0) * 100)}%
-                        </p>
-                      </div>
-                      {apiResult.second_condition_name && (
-                        <div className="flex-1 bg-card border border-border rounded-xl p-3 text-center">
-                          <p className="text-sm font-bold text-foreground">{apiResult.second_condition_name}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            רמת התאמה: {Math.round((apiResult.second_confidence ?? 0) * 100)}%
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Explanation */}
-                <div className="bg-accent rounded-xl p-4 border border-border">
-                  <p className="text-sm text-muted-foreground text-center">
-                    נמצאו סימנים שמתאימים ליותר ממצב אחד, לכן נבקש לענות על שאלה אחת כדי לבחור הנחיה בטוחה יותר.
-                  </p>
-                </div>
-
-                {/* Temporary safety warning for second condition */}
-                {apiResult?.second_forbidden_action && apiResult?.second_condition_name && apiResult?.second_confidence != null && (
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
-                    <p className="text-sm text-orange-800 leading-relaxed">
-                      מאחר שיש סיכוי של {Math.round(apiResult.second_confidence * 100)}% ל{apiResult.second_condition_name}, בשלב זה ננחה אתכם לא לעשות:{' '}
-                      <span className="font-semibold">{apiResult.second_forbidden_action}</span>
-                    </p>
-                  </div>
-                )}
-
                 {/* Clarification question */}
                 {apiResult?.clarification?.question_text && (
-                  <p className="text-base font-medium text-foreground">{apiResult.clarification.question_text}</p>
+                  <p className="text-lg font-semibold text-foreground mb-2">{apiResult.clarification.question_text}</p>
                 )}
 
                 <div className="space-y-3 flex-1">
@@ -1130,12 +1082,12 @@ function App() {
                   >
                     {instructionStep < displayInstructions.length - 1 ? 'השלב הבא' : 'סיום וחזרה לבית'}
                   </button>
-                  <button
-                    type="button"
-                    className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl px-4 py-4 transition-all flex items-center justify-center gap-2 font-medium"
+                  <a
+                    href="tel:101"
+                    className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-xl px-4 py-4 transition-all flex items-center justify-center gap-2 font-medium no-underline"
                   >
-                    חיוג חירום
-                  </button>
+                    חיוג חירום 101
+                  </a>
                   <p className="text-xs text-muted-foreground text-center">
                     בצעו רק פעולות שאתם מבינים. במקרה של ספק, התקשרו למוקד חירום.
                   </p>
@@ -1147,56 +1099,104 @@ function App() {
             {page === 'analysis' && (
               <section style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 {renderPageHeader('ניתוח המערכת')}
-                <div style={{ background: 'var(--background)', borderRadius: '24px 24px 0 0', marginTop: -20, position: 'relative', zIndex: 2, padding: '1.25rem 1.5rem 1.5rem', flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+                <div style={{ background: 'var(--background)', borderRadius: '24px 24px 0 0', marginTop: -20, position: 'relative', zIndex: 2, padding: '1rem 1.25rem 1rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
                 {errorBanner}
-                <p className="text-sm text-muted-foreground mb-4">אנא המתינו בזמן שאנו מעבדים את המידע</p>
-                <div className="space-y-4 flex-1">
+
+                {/* Steps — 2×2 compact grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                   {analysisSteps.map((item) => (
-                    <article key={item.step} className="bg-card rounded-2xl p-5 shadow-sm border border-border flex items-center gap-4">
-                      <span className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-primary text-white font-bold">
+                    <div key={item.step} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 12, padding: '8px 10px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: '#C8192E', color: 'white', fontWeight: 700, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {item.step}
                       </span>
-                      <div className="text-base font-semibold text-foreground">{item.title}</div>
-                    </article>
-                  ))}
-
-                  {apiResult && (
-                    <div className="bg-white border border-border rounded-2xl p-4 shadow-sm mt-4 text-sm text-foreground">
-                      <h3 className="font-bold mb-2">פרטי ניתוח מהמנוע</h3>
-                      <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                        <div>Status:</div><div className="text-foreground">{apiResult.status}</div>
-                        <div>Condition:</div><div className="text-foreground">{apiResult.top_condition ?? '-'}</div>
-                        <div>Urgency:</div><div className="text-foreground">{apiResult.urgency_level}</div>
-                        <div>Confidence:</div><div className="text-foreground">{`${Math.round(apiResult.confidence * 100)}%`}</div>
-                      </div>
-                      <div className="mt-3">
-                        <strong>Matched symptoms:</strong>
-                        <ul className="list-disc list-inside mt-2 text-foreground">
-                          {apiResult.matched_symptoms.map((s) => (<li key={s}>{s}</li>))}
-                        </ul>
-                      </div>
-                      <div className="mt-3">
-                        <strong>Safety Notes:</strong>
-                        <p className="text-foreground mt-2">{apiResult.safety_message}</p>
-                      </div>
-                      {apiResult.alternative_conditions.length > 0 && (
-                        <div className="mt-3">
-                          <strong>Alternative Conditions:</strong>
-                          <ul className="list-disc list-inside mt-2 text-foreground">
-                            {apiResult.alternative_conditions.map((ac) => (
-                              <li key={ac.condition}>{ac.condition} ({Math.round(ac.confidence * 100)}%)</li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--foreground)', lineHeight: 1.3 }}>{item.title}</span>
                     </div>
-                  )}
+                  ))}
                 </div>
 
-                <div className="space-y-3 mt-4">
-                  <p className="text-sm text-muted-foreground">מקור: {analysisSource}<br />{analysisTarget}</p>
-                  <button type="button" className="w-full text-secondary hover:text-secondary/80 py-3 transition-all" onClick={resetState}>
-                    <span className="text-base underline">חזור למסך הבית</span>
+                {/* Engine details card */}
+                {apiResult && (() => {
+                  const urgencyLabel =
+                    apiResult.urgency_level === 'critical' ? 'קריטי' :
+                    apiResult.urgency_level === 'urgent'   ? 'דחוף'  : 'לא ידוע';
+                  const urgencyColor =
+                    apiResult.urgency_level === 'critical' ? '#C8192E' :
+                    apiResult.urgency_level === 'urgent'   ? '#EA580C' : '#6B7280';
+                  const confPct = Math.round((apiResult.selected_confidence ?? apiResult.confidence ?? 0) * 100);
+                  const condName = apiResult.selected_condition_name || (apiResult as any).condition || '—';
+                  const altConds = apiResult.alternative_conditions.filter(ac => ac.confidence > 0.01);
+
+                  return (
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      {/* Card header */}
+                      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--card)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--foreground)' }}>פרטי ניתוח המנוע</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, color: 'white', backgroundColor: urgencyColor }}>{urgencyLabel}</span>
+                      </div>
+
+                      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 10, flex: 1, background: 'var(--card)' }}>
+
+                        {/* Condition + confidence on same row */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                          <div>
+                            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', marginBottom: 2 }}>מצב שאובחן</p>
+                            <p style={{ fontSize: 14, fontWeight: 700, color: 'var(--foreground)' }}>{withSuspect(condName)}</p>
+                          </div>
+                          <div style={{ textAlign: 'center', flexShrink: 0 }}>
+                            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', marginBottom: 2 }}>ודאות</p>
+                            <span style={{ fontSize: 18, fontWeight: 800, color: '#C8192E' }}>{confPct}%</span>
+                          </div>
+                        </div>
+
+                        {/* Confidence bar */}
+                        <div style={{ height: 6, background: 'var(--muted)', borderRadius: 9999, overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${confPct}%`, backgroundColor: '#C8192E', borderRadius: 9999, transition: 'width 0.5s ease' }} />
+                        </div>
+
+                        {/* Matched symptoms */}
+                        {apiResult.matched_symptoms.length > 0 && (
+                          <div>
+                            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', marginBottom: 5 }}>תסמינים שזוהו</p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                              {apiResult.matched_symptoms.map((s) => (
+                                <span key={s} style={{ fontSize: 10, padding: '3px 8px', borderRadius: 20, border: '1px solid var(--border)', background: 'var(--muted)', color: 'var(--foreground)' }}>{s}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Alternative conditions */}
+                        {altConds.length > 0 && (
+                          <div>
+                            <p style={{ fontSize: 10, color: 'var(--muted-foreground)', marginBottom: 5 }}>מצבים אלטרנטיביים</p>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {altConds.map((ac) => {
+                                const pct = Math.round(ac.confidence * 100);
+                                const conditionName = ac.condition;
+                                return (
+                                  <div key={conditionName}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                                      <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--foreground)' }}>{conditionName}</span>
+                                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>{pct}%</span>
+                                    </div>
+                                    <div style={{ height: 4, background: 'var(--muted)', borderRadius: 9999, overflow: 'hidden' }}>
+                                      <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#94a3b8', borderRadius: 9999 }} />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div style={{ paddingTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <p style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>מקור: {analysisSource} · {analysisTarget}</p>
+                  <button type="button" style={{ fontSize: 12, color: 'var(--muted-foreground)', textDecoration: 'underline', background: 'none', border: 'none' }} onClick={resetState}>
+                    חזור לבית
                   </button>
                 </div>
                 </div>
@@ -1278,7 +1278,7 @@ function App() {
                         </div>
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <h3 className="text-xl font-bold text-foreground mb-1">{item.title}</h3>
+                            <h3 className="text-xl font-bold text-foreground mb-1">{withSuspect(item.title)}</h3>
                             <p className="text-sm text-muted-foreground">רמת ודאות: {item.confidence}</p>
                           </div>
                           <button
@@ -1340,7 +1340,7 @@ function App() {
         <div className="fixed inset-0 grid place-items-center bg-black/50 p-6">
           <div className="w-full max-w-md bg-background rounded-2xl p-6 shadow-2xl border border-border">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-bold text-foreground">{selectedHistory.title}</h2>
+              <h2 className="text-xl font-bold text-foreground">{withSuspect(selectedHistory.title)}</h2>
               <button type="button" className="text-muted-foreground hover:text-foreground" onClick={() => setSelectedHistory(null)}>
                 ✕
               </button>
