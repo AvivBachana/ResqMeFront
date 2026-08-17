@@ -1,0 +1,502 @@
+.responder-page {
+  --resqme-red: #d40018;
+  --resqme-red-dark: #b90016;
+  --resqme-green: #16a34a;
+  --resqme-blue: #1267cf;
+  --resqme-text: #202124;
+  --resqme-muted: #646a73;
+  --resqme-border: #d8dde6;
+  /* This screen is embedded inside the app's fixed-height phone frame
+     (see App.tsx's outer h-[844px] overflow-hidden container) as a flex
+     child, matching the flex: 1 pattern every other page's <section> uses
+     there — a percentage height would not reliably resolve in that flex
+     chain, so this must grow/shrink via flex instead. */
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  background: #f5f6f8;
+  color: var(--resqme-text);
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.responder-header {
+  position: relative;
+  min-height: 220px;
+  padding: 28px 24px 52px;
+  overflow: hidden;
+  color: #fff;
+  background:
+    radial-gradient(circle at 70% 30%, rgba(255, 80, 80, 0.22), transparent 36%),
+    linear-gradient(145deg, #e0001b 0%, #bd0017 100%);
+  flex-shrink: 0;
+}
+
+.responder-header__top {
+  direction: ltr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.responder-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 25px;
+  font-weight: 500;
+}
+
+.responder-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 14px;
+}
+
+.responder-brand-mark svg {
+  width: 34px;
+  height: 34px;
+}
+
+.responder-back-button {
+  direction: rtl;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 48px;
+  padding: 0 16px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  border-radius: 11px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.responder-demo-label {
+  position: absolute;
+  top: 92px;
+  left: 24px;
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.responder-header h1 {
+  margin: 38px 0 0;
+  text-align: center;
+  font-size: clamp(31px, 8vw, 42px);
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.responder-sheet {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  /* min-height: 0 lets this flex child actually shrink and scroll instead
+     of growing to fit its content and pushing the frame's fixed bottom
+     edge (see .responder-page comment above). */
+  min-height: 0;
+  margin-top: -28px;
+  padding: 24px 18px 32px;
+  background: #fff;
+  border-radius: 32px 32px 0 0;
+  box-shadow: 0 -5px 22px rgba(45, 52, 65, 0.08);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.responder-found-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 16px;
+  /* Direct children of the scrollable .responder-sheet must not be
+     shrunk by the flex algorithm — only the sheet itself should scroll,
+     everything inside keeps its natural size (same pattern the rest of
+     the app uses: flex-shrink-0 on everything but the scroll region). */
+  flex-shrink: 0;
+  background: #fff6f6;
+  border: 1.5px solid #f0a5ad;
+  border-radius: 14px;
+}
+
+.responder-found-card__icon {
+  display: grid;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  color: #fff;
+  background: var(--resqme-blue);
+  border-radius: 50%;
+}
+
+.responder-found-card strong,
+.responder-found-card span {
+  display: block;
+}
+
+.responder-found-card strong {
+  margin-bottom: 4px;
+  color: #c90018;
+  font-size: 19px;
+}
+
+.responder-found-card span {
+  color: var(--resqme-muted);
+  font-size: 14px;
+}
+
+.responder-map {
+  position: relative;
+  height: 340px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #f1f3f4;
+  border: 1.5px solid #cfd5df;
+  border-radius: 14px;
+}
+
+.map-background {
+  position: absolute;
+  inset: 0;
+  background-color: #f7f8f8;
+  background-image:
+    linear-gradient(29deg, transparent 46%, #dde1e5 47%, #fff 49%, transparent 51%),
+    linear-gradient(118deg, transparent 45%, #e1e4e7 46%, #fff 49%, transparent 51%),
+    repeating-linear-gradient(12deg, transparent 0 46px, #e5e8eb 47px 50px);
+  opacity: 0.9;
+}
+
+/* Pale-green park patches and pale-gray building blocks, purely local CSS —
+   no map imagery or external tiles. */
+.map-park {
+  position: absolute;
+  background: #d9ead6;
+  opacity: 0.85;
+}
+
+.map-park--1 {
+  top: 8%;
+  right: 8%;
+  width: 24%;
+  height: 18%;
+  border-radius: 40% 60% 55% 45% / 55% 40% 60% 45%;
+}
+
+.map-park--2 {
+  bottom: 14%;
+  left: 6%;
+  width: 18%;
+  height: 13%;
+  border-radius: 55% 45% 40% 60% / 45% 55% 40% 60%;
+}
+
+.map-building {
+  position: absolute;
+  background: #fff;
+  border: 1px solid #e3e7ed;
+  border-radius: 3px;
+}
+
+.map-building--1 { top: 14%; left: 12%; width: 12%; height: 9%; }
+.map-building--2 { top: 26%; left: 22%; width: 9%; height: 7%; background: #edf0f3; }
+.map-building--3 { bottom: 22%; right: 16%; width: 11%; height: 8%; }
+.map-building--4 { bottom: 32%; right: 30%; width: 8%; height: 6%; background: #edf0f3; }
+
+.map-route {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.map-route polyline {
+  fill: none;
+  stroke: var(--resqme-blue);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.map-marker {
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -100%);
+}
+
+.map-marker svg {
+  display: block;
+}
+
+.map-marker--incident {
+  top: 38%;
+  left: 51%;
+}
+
+.map-marker--responder-primary {
+  top: 42%;
+  left: 81%;
+}
+
+.map-marker--responder-secondary {
+  top: 62%;
+  left: 20%;
+}
+
+.map-marker--aed {
+  top: 20%;
+  left: 68%;
+}
+
+.map-legend {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  z-index: 3;
+  direction: rtl;
+  display: grid;
+  gap: 9px;
+  min-width: 126px;
+  padding: 13px 15px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #d1d6de;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(32, 33, 36, 0.09);
+}
+
+.map-legend div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.legend-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot--incident {
+  background: #e21b2d;
+}
+
+.legend-dot--responder {
+  background: var(--resqme-blue);
+}
+
+.legend-dot--aed {
+  background: var(--resqme-green);
+}
+
+.responder-status-card {
+  margin-top: 18px;
+  padding: 20px 17px 15px;
+  flex-shrink: 0;
+  background: #fff;
+  border: 1.5px solid var(--resqme-border);
+  border-radius: 14px;
+}
+
+.responder-status-card__title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  font-size: 25px;
+}
+
+.status-indicator {
+  width: 20px;
+  height: 20px;
+  background: var(--resqme-green);
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.11);
+  flex-shrink: 0;
+}
+
+.responder-metrics {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+}
+
+.responder-metrics div {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.responder-metrics dt,
+.responder-metrics dd {
+  margin: 0;
+}
+
+.responder-metrics dt {
+  color: #656b73;
+  display: flex;
+  align-items: center;
+}
+
+.responder-metrics dd {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.responder-progress {
+  height: 12px;
+  margin-top: 20px;
+  overflow: hidden;
+  background: #e0e3e9;
+  border-radius: 999px;
+}
+
+.responder-progress span {
+  display: block;
+  width: 55%;
+  height: 100%;
+  margin-inline-start: 25%;
+  background: linear-gradient(90deg, #138c3c, #28b45b);
+  border-radius: inherit;
+}
+
+.responder-contact-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e3e6eb;
+}
+
+.responder-contact-row strong,
+.responder-contact-row span {
+  display: block;
+}
+
+.responder-contact-row span {
+  margin-top: 3px;
+  color: var(--resqme-muted);
+  font-size: 13px;
+}
+
+.responder-contact-button {
+  min-height: 42px;
+  padding: 0 16px;
+  color: var(--resqme-red);
+  background: #fff;
+  border: 1.5px solid var(--resqme-red);
+  border-radius: 10px;
+  font: inherit;
+  font-weight: 700;
+}
+
+.responder-emergency-note {
+  margin: 20px 4px;
+  color: #444950;
+  text-align: center;
+  font-size: 16px;
+  line-height: 1.55;
+  flex-shrink: 0;
+}
+
+.responder-actions {
+  display: grid;
+  gap: 11px;
+  margin-top: auto;
+  padding-top: 8px;
+  flex-shrink: 0;
+}
+
+.responder-action {
+  width: 100%;
+  min-height: 55px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.responder-action--primary {
+  color: #fff;
+  background: linear-gradient(135deg, #d9001a, #bd0017);
+  border: 1.5px solid var(--resqme-red);
+}
+
+.responder-action--secondary {
+  color: var(--resqme-red);
+  background: #fff;
+  border: 1.5px solid var(--resqme-red);
+}
+
+.responder-back-button,
+.responder-contact-button,
+.responder-action {
+  cursor: pointer;
+}
+
+.responder-back-button:focus-visible,
+.responder-contact-button:focus-visible,
+.responder-action:focus-visible {
+  outline: 3px solid #165dff;
+  outline-offset: 3px;
+}
+
+@media (min-width: 720px) {
+  .responder-page {
+    max-width: 760px;
+    box-shadow: 0 0 32px rgba(26, 31, 40, 0.12);
+  }
+
+  .responder-map {
+    height: 430px;
+  }
+
+  .responder-sheet {
+    padding-inline: 34px;
+  }
+}
+
+@media (max-width: 370px) {
+  .responder-header {
+    padding-inline: 16px;
+  }
+
+  .responder-sheet {
+    padding-inline: 13px;
+  }
+
+  .responder-brand span {
+    font-size: 21px;
+  }
+
+  .responder-status-card__title {
+    font-size: 22px;
+  }
+}

@@ -1,4 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import NearbyResponderDetails from './ResponderDetails';
+import {
+  RESPONDER_DISTANCE_METERS,
+  RESPONDER_ETA_MINUTES,
+  formatEtaMinutes,
+  formatMeters,
+  getTravelProgress,
+} from './responderPoc';
+import { getInstructionVideo } from './instructionVideo';
+import { getConfidenceLabel } from './confidence';
 
 type Page =
   | 'home'
@@ -10,14 +20,15 @@ type Page =
   | 'practice'
   | 'practiceDetail'
   | 'history'
-  | 'loading';
+  | 'loading'
+  | 'responderDetails';
 
 type HistoryItem = {
   id: number;
   date: string;
   source: string;
   title: string;
-  confidence: string;
+  confidence: number | string;
   mode: string;
   inputText?: string;
 };
@@ -204,6 +215,7 @@ type AnalyzeResponse = {
   transcript?: string;
   confidence: number;
   urgency_level: string;
+  urgency?: string;
   status: string;
   needs_clarification: boolean;
   clarifying_question?: string | null;
@@ -239,10 +251,17 @@ function App() {
   const [apiResult, setApiResult] = useState<AnalyzeResponse | null>(null);
   const apiBase = ((import.meta as any).env?.VITE_API_BASE as string) || '';
   const [summaryOrigin, setSummaryOrigin] = useState<'assessment' | 'practice'>('assessment');
+  const [clarificationWasAsked, setClarificationWasAsked] = useState(false);
+  // Nearby-responder POC simulation state, lifted here (not local to the
+  // details screen) so leaving and returning to that screen resumes the
+  // simulation instead of restarting it. Reset only on a new diagnosis.
+  const [responderRequested, setResponderRequested] = useState(false);
+  const [responderElapsedMs, setResponderElapsedMs] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const stepsContainerRef = useRef<HTMLDivElement>(null);
+  const instructionVideoRef = useRef<HTMLVideoElement>(null);
   const [loadingStep, setLoadingStep] = useState(0);
   const exampleQueueRef = useRef<string[]>([]);
 
@@ -262,6 +281,14 @@ function App() {
   }, [page]);
 
   useEffect(() => {
+    const video = instructionVideoRef.current;
+    if (!video) return;
+
+    video.pause();
+    video.currentTime = 0;
+  }, [instructionStep, page]);
+
+  useEffect(() => {
     if (page !== 'summary' || !apiResult) return;
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
@@ -269,7 +296,7 @@ function App() {
     const source = analysisSource === 'קול' ? 'קול' : summaryOrigin === 'practice' ? 'סימולציה' : 'טקסט';
     const mode = summaryOrigin === 'practice' ? 'תרגול' : 'חירום';
     const title = apiResult.selected_condition_name || (apiResult as any).condition || '';
-    const confidence = `${Math.round((apiResult.selected_confidence ?? apiResult.confidence ?? 0) * 100)}%`;
+    const confidence = apiResult.selected_confidence ?? apiResult.confidence ?? 0;
     const inputText = (apiResult as any).transcript ?? description ?? selectedScenario ?? '';
     const newItem: HistoryItem = { id: Date.now(), date, source, title, confidence, mode, inputText };
     const updated = [newItem, ...historyItems].slice(0, 100);
@@ -287,25 +314,19 @@ function App() {
 
     switch (selectedScenario) {
       case 'חנק':
-        return { title: 'חנק', confidence: '87%', symptoms: ['קושי בנשימה', 'חנק', 'שיעול'] };
+        return { title: 'חנק', confidence: 0.87, symptoms: ['קושי בנשימה', 'חנק', 'שיעול'] };
       case 'כאבים בחזה':
-        return { title: 'כאבים בחזה', confidence: '92%', symptoms: ['כאבים חזקים בחזה', 'קוצר נשימה', 'זיעה קרה'] };
+        return { title: 'כאבים בחזה', confidence: 0.92, symptoms: ['כאבים חזקים בחזה', 'קוצר נשימה', 'זיעה קרה'] };
       case 'חשד לשבץ':
-        return { title: 'חשד לשבץ', confidence: '78%', symptoms: ['חולשה בצד אחד', 'קושי בדיבור', 'בלבול'] };
+        return { title: 'חשד לשבץ', confidence: 0.78, symptoms: ['חולשה בצד אחד', 'קושי בדיבור', 'בלבול'] };
       case 'פרכוס':
-        return { title: 'פרכוס', confidence: '85%', symptoms: ['תזוזות בלתי רצוניות', 'איבוד הכרה', 'נשימה לא סדירה'] };
+        return { title: 'פרכוס', confidence: 0.85, symptoms: ['תזוזות בלתי רצוניות', 'איבוד הכרה', 'נשימה לא סדירה'] };
       case 'דימום חמור':
-        return { title: 'דימום חמור', confidence: '95%', symptoms: ['דימום כבד', 'חולשה', 'עור חיוור'] };
+        return { title: 'דימום חמור', confidence: 0.95, symptoms: ['דימום כבד', 'חולשה', 'עור חיוור'] };
       default:
         return null;
     }
   }, [selectedScenario]);
-
-  const formatConfidence = (v: any) => {
-    if (v == null) return '';
-    if (typeof v === 'number') return v <= 1 ? `${Math.round(v * 100)}%` : `${Math.round(v)}%`;
-    return String(v);
-  };
 
   const withSuspect = (name: string | null | undefined): string =>
     name ? `חשד ל${name}` : '';
@@ -315,7 +336,7 @@ function App() {
 
     const rawTitle = apiResult.selected_condition_name || (apiResult as any).condition || '';
     const title = rawTitle ? `חשד ל${rawTitle}` : '';
-    const confidence = formatConfidence(apiResult.selected_confidence ?? (apiResult as any).confidence);
+    const confidence = getConfidenceLabel(apiResult.selected_confidence ?? (apiResult as any).confidence);
     const symptoms = apiResult.matched_symptoms && apiResult.matched_symptoms.length > 0
       ? apiResult.matched_symptoms
       : (result ? result.symptoms : []);
@@ -323,7 +344,27 @@ function App() {
     return { title, confidence, symptoms };
   }, [apiResult, result]);
 
+  // Reuses the backend's own urgency classification (no separate condition
+  // list): "critical" and "urgent" are the two non-unknown urgency values
+  // the DSS engine returns, both of which are high-urgency / life-threatening.
+  const isHighUrgency = useMemo(() => {
+    const urgency = apiResult?.urgency || apiResult?.urgency_level;
+    return urgency === 'critical' || urgency === 'urgent';
+  }, [apiResult]);
+
+  // Live snapshot of the responder simulation, used by the compact
+  // notification card. Derived the same way the details screen derives it,
+  // from the same lifted elapsed-time state.
+  const responderTravelProgress = getTravelProgress(responderElapsedMs);
+  const responderCurrentDistanceMeters = RESPONDER_DISTANCE_METERS * (1 - responderTravelProgress);
+  const responderCurrentEtaMinutes = RESPONDER_ETA_MINUTES * (1 - responderTravelProgress);
+
   const displayInstructions = apiResult?.instructions ?? instructionSteps;
+
+  const instructionVideo = useMemo(
+    () => getInstructionVideo(apiResult?.selected_condition_name || (apiResult as any)?.condition),
+    [apiResult],
+  );
 
   const resetState = () => {
     if (mediaRecorderRef.current) {
@@ -341,6 +382,9 @@ function App() {
     setAnalysisTarget('');
     setApiError(null);
     setApiResult(null);
+    setClarificationWasAsked(false);
+    setResponderRequested(false);
+    setResponderElapsedMs(0);
   };
 
   const handleAnalyze = async () => {
@@ -373,8 +417,10 @@ function App() {
       setApiResult(data);
 
       if (data.needs_clarification && data.status === 'needs_clarification' && data.clarification != null) {
+        setClarificationWasAsked(true);
         setPage('clarify');
       } else {
+        setClarificationWasAsked(false);
         setPage('summary');
       }
     } catch (err: any) {
@@ -474,8 +520,10 @@ function App() {
       setApiResult(data);
 
       if (data.needs_clarification && data.status === 'needs_clarification' && data.clarification != null) {
+        setClarificationWasAsked(true);
         setPage('clarify');
       } else {
+        setClarificationWasAsked(false);
         setPage('summary');
       }
     } catch (err: any) {
@@ -517,7 +565,7 @@ function App() {
           const data: AnalyzeResponse = await res.json();
           setApiResult(data);
           setAnalysisTarget(data.input_text ?? '');
-          if (data.needs_clarification && data.status === 'needs_clarification' && data.clarification != null) { setPage('clarify'); } else { setPage('summary'); }
+          if (data.needs_clarification && data.status === 'needs_clarification' && data.clarification != null) { setClarificationWasAsked(true); setPage('clarify'); } else { setClarificationWasAsked(false); setPage('summary'); }
         } catch (err: any) {
           const msg = err?.message ?? String(err);
           setApiError(msg);
@@ -555,7 +603,11 @@ function App() {
     }
 
     if (page === 'summary') {
-      setPage(summaryOrigin === 'practice' ? 'practiceDetail' : 'clarify');
+      if (summaryOrigin === 'practice') {
+        setPage('practiceDetail');
+      } else {
+        setPage(clarificationWasAsked ? 'clarify' : 'assessment');
+      }
       return;
     }
 
@@ -566,6 +618,11 @@ function App() {
 
     if (page === 'analysis') {
       setPage('summary');
+      return;
+    }
+
+    if (page === 'responderDetails') {
+      setPage('instructions');
       return;
     }
 
@@ -594,7 +651,7 @@ function App() {
     </svg>
   );
 
-  const renderPageHeader = (title: string) => (
+  const renderPageHeader = (title: string, showPocBadge = false) => (
     <div style={{
       background: '#C8192E',
       padding: '1.25rem 1.5rem 2.5rem',
@@ -612,6 +669,11 @@ function App() {
             {logoSvg}
           </div>
           <span style={{ color: 'white', fontSize: 18, fontWeight: 700, letterSpacing: '-0.3px' }}>ResQme</span>
+          {showPocBadge && (
+            <span style={{ color: 'white', background: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.5)', borderRadius: 999, padding: '2px 7px', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em' }}>
+              POC DEMO
+            </span>
+          )}
         </div>
         <button
           type="button"
@@ -641,7 +703,7 @@ function App() {
     <div className="min-h-screen flex items-center justify-center p-6 bg-transparent">
       <div className="w-full max-w-[390px] h-[844px] bg-background shadow-2xl overflow-hidden">
         <div className="h-full bg-background flex flex-col">
-          <div className="w-full max-w-md mx-auto flex-1 flex flex-col">
+          <div className="w-full max-w-md mx-auto flex-1 flex flex-col min-h-0 overflow-hidden">
 
             {page === 'home' && (
               <section style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -990,6 +1052,18 @@ function App() {
               </section>
             )}
 
+            {page === 'responderDetails' && apiResult && (
+              <NearbyResponderDetails
+                conditionTitle={displayResult?.title ?? ''}
+                simRequested={responderRequested}
+                simElapsedMs={responderElapsedMs}
+                onSimTick={(deltaMs) => setResponderElapsedMs((current) => current + deltaMs)}
+                onBack={() => setPage('instructions')}
+                onContinueInstructions={() => setPage('instructions')}
+                onReturnToResults={() => setPage('summary')}
+              />
+            )}
+
             {page === 'instructions' && displayResult && (
               <section style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 <style>{`
@@ -999,7 +1073,7 @@ function App() {
                   }
                   .step-reveal { animation: stepReveal 0.38s cubic-bezier(0.16,1,0.3,1) both; }
                 `}</style>
-                {renderPageHeader('הנחיות מיידיות')}
+                {renderPageHeader('הנחיות מיידיות', true)}
                 <div style={{ background: 'var(--background)', borderRadius: '24px 24px 0 0', marginTop: -20, position: 'relative', zIndex: 2, padding: '1.25rem 1.5rem 1rem', flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                 {errorBanner}
 
@@ -1027,48 +1101,116 @@ function App() {
                   {displayInstructions.slice(0, instructionStep + 1).map((instruction, idx) => {
                     const isDone = idx < instructionStep;
                     const isCurrent = idx === instructionStep;
-                    return (
-                      <div key={idx} className="step-reveal">
-                        <div
-                          className={`rounded-2xl border transition-colors duration-300 ${
-                            isCurrent
-                              ? 'bg-white border-primary shadow-lg'
-                              : 'bg-muted/30 border-border'
-                          }`}
-                        >
-                          <div className="flex items-start gap-4 p-4">
-                            {/* Badge */}
-                            <div
-                              className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5 shadow-sm transition-colors duration-300"
-                              style={{
-                                backgroundColor: isDone ? 'rgb(34,197,94)' : 'rgb(200,16,46)',
-                              }}
-                            >
-                              {isDone ? (
-                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                                  <path d="M3.5 9.5L7 13L14.5 5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                              ) : (
-                                <span className="text-white font-bold text-sm">{idx + 1}</span>
-                              )}
-                            </div>
 
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <p className={`text-xs font-semibold mb-1.5 ${
-                                isDone ? 'text-green-600' : 'text-primary'
-                              }`}>
-                                {isDone ? 'הושלם' : `שלב ${idx + 1}`}
-                              </p>
-                              <p className={`text-sm leading-relaxed ${
-                                isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'
-                              }`}>
-                                {instruction}
-                              </p>
+                    return (
+                      <Fragment key={idx}>
+                        <div className="step-reveal">
+                          <div
+                            className={`rounded-2xl border transition-colors duration-300 ${
+                              isCurrent
+                                ? 'bg-white border-primary shadow-lg'
+                                : 'bg-muted/30 border-border'
+                            }`}
+                          >
+                            <div className="flex items-start gap-4 p-4">
+                              {/* Badge */}
+                              <div
+                                className="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center mt-0.5 shadow-sm transition-colors duration-300"
+                                style={{
+                                  backgroundColor: isDone ? 'rgb(34,197,94)' : 'rgb(200,16,46)',
+                                }}
+                              >
+                                {isDone ? (
+                                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                                    <path d="M3.5 9.5L7 13L14.5 5" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                ) : (
+                                  <span className="text-white font-bold text-sm">{idx + 1}</span>
+                                )}
+                              </div>
+
+                              {/* Content */}
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs font-semibold mb-1.5 ${
+                                  isDone ? 'text-green-600' : 'text-primary'
+                                }`}>
+                                  {isDone ? 'הושלם' : `שלב ${idx + 1}`}
+                                </p>
+                                <p className={`text-sm leading-relaxed ${
+                                  isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'
+                                }`}>
+                                  {instruction}
+                                </p>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+
+                        {/* Compact nearby-responder card — visible for every high-urgency
+                            result, right after the first instruction. Visibility depends
+                            only on isHighUrgency: no timer, no instructionStep dependency,
+                            no dependency on responder simulation status. Its CONTENT (not
+                            visibility) reflects whether the responder was already requested. */}
+                        {idx === 0 && isHighUrgency && (
+                          <div className="step-reveal">
+                            <div className="rounded-xl border border-border bg-card shadow-sm p-3 space-y-3">
+                              <div className="flex items-center gap-3">
+                                <div className="flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center" style={{ backgroundColor: '#1267cf' }}>
+                                  <span className="text-white text-sm font-bold">+</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  {responderRequested ? (
+                                    <>
+                                      <p className="text-sm font-semibold text-foreground">מע״ר בדרך</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {formatMeters(responderCurrentDistanceMeters)} · {formatEtaMinutes(responderCurrentEtaMinutes)}
+                                      </p>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <p className="text-sm font-semibold text-foreground">נמצא מע״ר בקרבת מקום</p>
+                                      <p className="text-xs text-muted-foreground">ניתן להזעיק מגיש עזרה ראשונה ולצפות במיקומו</p>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                className="w-full text-sm font-semibold rounded-lg px-3 py-2.5 transition-all"
+                                style={{ backgroundColor: '#EAF2FC', color: '#1267cf' }}
+                                onClick={() => {
+                                  if (!responderRequested) setResponderRequested(true);
+                                  setPage('responderDetails');
+                                }}
+                              >
+                                {responderRequested ? 'צפייה במיקום המע״ר' : 'הזעקת המע״ר והצגת המיקום'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Matching instructional video — appears immediately after Step 3
+                            (idx === 2) is revealed, regardless of how many later
+                            instructions exist. */}
+                        {idx === 2 && instructionStep >= 2 && instructionVideo && (
+                          <div className="step-reveal pt-3">
+                            <p className="text-sm font-semibold text-foreground mb-2 text-center">
+                              {instructionVideo.title}
+                            </p>
+                            <div className="overflow-hidden rounded-2xl border border-border bg-black/5">
+                              <video
+                                ref={instructionVideoRef}
+                                className="w-full aspect-video object-contain"
+                                src={instructionVideo.src}
+                                controls
+                                playsInline
+                                preload="metadata"
+                                aria-label={instructionVideo.title}
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </div>
@@ -1122,7 +1264,7 @@ function App() {
                   const urgencyColor =
                     apiResult.urgency_level === 'critical' ? '#C8192E' :
                     apiResult.urgency_level === 'urgent'   ? '#EA580C' : '#6B7280';
-                  const confPct = Math.round((apiResult.selected_confidence ?? apiResult.confidence ?? 0) * 100);
+                  const confLabel = getConfidenceLabel(apiResult.selected_confidence ?? apiResult.confidence ?? 0);
                   const condName = apiResult.selected_condition_name || (apiResult as any).condition || '—';
                   const altConds = apiResult.alternative_conditions.filter(ac => ac.confidence > 0.01);
 
@@ -1144,13 +1286,8 @@ function App() {
                           </div>
                           <div style={{ textAlign: 'center', flexShrink: 0 }}>
                             <p style={{ fontSize: 10, color: 'var(--muted-foreground)', marginBottom: 2 }}>ודאות</p>
-                            <span style={{ fontSize: 18, fontWeight: 800, color: '#C8192E' }}>{confPct}%</span>
+                            <span style={{ fontSize: 14, fontWeight: 800, color: '#C8192E' }}>{confLabel}</span>
                           </div>
-                        </div>
-
-                        {/* Confidence bar */}
-                        <div style={{ height: 6, background: 'var(--muted)', borderRadius: 9999, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${confPct}%`, backgroundColor: '#C8192E', borderRadius: 9999, transition: 'width 0.5s ease' }} />
                         </div>
 
                         {/* Matched symptoms */}
@@ -1171,16 +1308,12 @@ function App() {
                             <p style={{ fontSize: 10, color: 'var(--muted-foreground)', marginBottom: 5 }}>מצבים אלטרנטיביים</p>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {altConds.map((ac) => {
-                                const pct = Math.round(ac.confidence * 100);
                                 const conditionName = ac.condition;
                                 return (
                                   <div key={conditionName}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
                                       <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--foreground)' }}>{conditionName}</span>
-                                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>{pct}%</span>
-                                    </div>
-                                    <div style={{ height: 4, background: 'var(--muted)', borderRadius: 9999, overflow: 'hidden' }}>
-                                      <div style={{ height: '100%', width: `${pct}%`, backgroundColor: '#94a3b8', borderRadius: 9999 }} />
+                                      <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>{getConfidenceLabel(ac.confidence)}</span>
                                     </div>
                                   </div>
                                 );
@@ -1279,7 +1412,7 @@ function App() {
                         <div className="flex items-center justify-between gap-4">
                           <div>
                             <h3 className="text-xl font-bold text-foreground mb-1">{withSuspect(item.title)}</h3>
-                            <p className="text-sm text-muted-foreground">רמת ודאות: {item.confidence}</p>
+                            <p className="text-sm text-muted-foreground">רמת ודאות: {getConfidenceLabel(item.confidence)}</p>
                           </div>
                           <button
                             type="button"
@@ -1349,7 +1482,7 @@ function App() {
               <p>תאריך: {selectedHistory.date}</p>
               <p>מקור: {selectedHistory.source}</p>
               <p>אופי אירוע: {selectedHistory.mode}</p>
-              <p>רמת ודאות: {selectedHistory.confidence}</p>
+              <p>רמת ודאות: {getConfidenceLabel(selectedHistory.confidence)}</p>
               {selectedHistory.inputText && (
                 <div className="pt-1">
                   <p className="text-sm font-medium text-foreground mb-1">תיאור הבקשה:</p>
